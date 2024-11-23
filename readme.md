@@ -1,0 +1,1 @@
+# A tool use to translate English in terminal
