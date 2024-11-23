@@ -6,7 +6,10 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"os"
+	"slices"
 
 	"github.com/cncsmonster/tl-go/internal/config"
 	"github.com/openai/openai-go"
@@ -14,7 +17,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-func translate(conf *config.Config, toTranslate ...string) {
+func Translate(conf *config.Config, toTranslate ...string) {
 
 	client := openai.NewClient(option.WithBaseURL(conf.BaseUrl), option.WithAPIKey(conf.ApiKey))
 
@@ -60,22 +63,23 @@ func translate(conf *config.Config, toTranslate ...string) {
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "tl",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Short: "A simple tool using llm to translate english in terminal",
+	Long: `use - will get input from stdin,input 'EOF' (usually <C+D>) to finish input`,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		conf := config.NewConfig()
 		if verbose {
 			fmt.Println(conf)
 		}
-		translate(&conf, args...)
+		if slices.Contains(args, "-") {
+			stdin, err := io.ReadAll(os.Stdin)
+			if err != nil {
+				log.Fatal(err)
+			}
+			Translate(&conf, string(stdin))
+		} else {
+			Translate(&conf, args...)
+		}
 	},
 }
 

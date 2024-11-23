@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 cncsmonster HERE cncsmonster@163.com
 */
 package main
 
