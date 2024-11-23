@@ -1,4 +1,4 @@
-module github.com/cncsmonster/tl-go
+module github.com/cncsmonster/trans-go
 
 go 1.23.2
 
