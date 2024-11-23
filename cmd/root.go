@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/cncsmonster/tl/internal/config"
+	"github.com/cncsmonster/tl-go/internal/config"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
 	"github.com/spf13/cobra"
