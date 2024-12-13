@@ -45,7 +45,6 @@ func Translate(conf *config.Config, toTranslate ...string) {
 			Model:       openai.F(conf.Model),
 			Temperature: openai.Float(conf.Temperature),
 		})
-		//var total string
 		for stream.Next() {
 			current := stream.Current()
 			if len(current.Choices) == 0 {
@@ -64,14 +63,14 @@ func Translate(conf *config.Config, toTranslate ...string) {
 var rootCmd = &cobra.Command{
 	Use:   "tl",
 	Short: "A simple tool using llm to translate english in terminal",
-	Long: `use - will get input from stdin,input 'EOF' (usually <C+D>) to finish input`,
+	Long:  `use - will get input from stdin,input 'EOF' (usually <C+D>) to finish input`,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
 		conf := config.NewConfig()
 		if verbose {
 			fmt.Println(conf)
 		}
-		if slices.Contains(args, "-") {
+		if slices.Contains(args, "-") || len(args) == 0 {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				log.Fatal(err)
