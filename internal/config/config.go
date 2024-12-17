@@ -26,14 +26,14 @@ func (c Config) String() string {
 }
 
 func DefaultConfig() (config *Config) {
-	// from XDG_COFNIG_HOME/tl/config.toml
-	// or from HOME/.tl/config.toml
+	// from XDG_COFNIG_HOME/trans-go/config.toml
+	// or from HOME/.trans-go/config.toml
 	// or with nil
 	var configPath string
 	if c, ok := os.LookupEnv("XDG_CONFIG_HOME"); ok {
-		configPath = c + "/tl/config.toml"
+		configPath = c + "/trans-go/config.toml"
 	} else if c, ok := os.LookupEnv("HOME"); ok {
-		configPath = c + "/.tl/config.toml"
+		configPath = c + "/.trans-go/config.toml"
 	}
 
 	if configPath == "" {
