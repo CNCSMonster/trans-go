@@ -22,18 +22,32 @@ var rootCmd = &cobra.Command{
 	Long:  `use - will get input from stdin, input 'EOF' (usually <C+D>) to finish input`,
 	Run: func(cmd *cobra.Command, args []string) {
 		verbose, _ := cmd.Flags().GetBool("verbose")
+		optimize, _ := cmd.Flags().GetInt("optimize")
 		conf := config.NewConfig()
+		conf.Optimize = optimize
+		conf.Verbose = verbose
 		if verbose {
 			fmt.Println(conf)
 		}
+
+		// 创建 translator 实例
+		translator, err := trans.NewTranslator(conf)
+		if err != nil {
+			log.Fatal(err)
+		}
+
 		if slices.Contains(args, "-") || len(args) == 0 {
 			stdin, err := io.ReadAll(os.Stdin)
 			if err != nil {
 				log.Fatal(err)
 			}
-			trans.Translate(&conf, string(stdin))
+			if err := translator.Translate(string(stdin)); err != nil {
+				log.Fatal(err)
+			}
 		} else {
-			trans.Translate(&conf, args...)
+			if err := translator.Translate(args...); err != nil {
+				log.Fatal(err)
+			}
 		}
 	},
 }
@@ -57,4 +71,5 @@ func init() {
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("verbose", "v", false, "show detail information")
+	rootCmd.Flags().IntP("optimize", "o", 0, "optimization level")
 }

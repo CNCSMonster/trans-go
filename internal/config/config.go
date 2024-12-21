@@ -14,11 +14,13 @@ type TomlConfig struct {
 	ApiKey      string  `toml:"OPENAI_API_KEY"`
 	Model       string  `toml:"MODEL"`
 	Temperature float64 `toml:"TEMPERATURE"`
+	Optimize    int     `toml:"OPTIMIZE"`
 }
 
 type Config struct {
 	TomlConfig
 	ConfigPath string
+	Verbose    bool
 }
 
 func (c Config) String() string {
@@ -79,6 +81,13 @@ func NewConfig() Config {
 			config.Temperature = t
 		} else {
 			panic(fmt.Sprintf("fail to parse \"%s\" as float64", ts))
+		}
+	}
+	if os, ok := os.LookupEnv("OPTIMIZE"); ok {
+		if o, err := strconv.Atoi(os); err == nil {
+			config.Optimize = o
+		} else {
+			panic(fmt.Sprintf("fail to parse \"%s\" as int", os))
 		}
 	}
 
