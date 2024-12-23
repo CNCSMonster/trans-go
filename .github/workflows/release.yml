@@ -1,0 +1,102 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - "v*" # 匹配所有以 v 开头的分支
+  pull_request:
+    branches:
+      - "v*" # 匹配所有以 v 开头的分支
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.23 # 根据你的 Go 版本进行调整
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Build for ${{ matrix.os }}
+        run: |
+          if [ "${{ matrix.os }}" == "windows-latest" ]; then
+            export GOOS=windows
+            export GOARCH=amd64
+            go build -o trans-go.exe
+          elif [ "${{ matrix.os }}" == "macos-latest" ]; then
+            export GOOS=darwin
+            export GOARCH=amd64
+            go build -o trans-go
+          else
+            export GOOS=linux
+            export GOARCH=amd64
+            go build -o trans-go
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: trans-go-${{ matrix.os }}
+          path: |
+            trans-go*
+
+  release:
+    needs: build # 依赖 build 任务完成
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: artifacts
+
+      - name: Extract version from branch name
+        id: extract_version
+        run: |
+          VERSION=$(echo $GITHUB_REF | grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+')
+          if [ -n "$VERSION" ]; then
+            echo "::set-output name=version::$VERSION"
+          else
+            echo "::set-output name=version::"
+          fi
+
+      - name: Create GitHub Release
+        if: ${{ steps.extract_version.outputs.version != '' }}
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.extract_version.outputs.version }} # 使用提取的版本号
+          release_name: "Release ${{ steps.extract_version.outputs.version }}" # 使用提取的版本号
+          draft: false
+          prerelease: false
+          body: |
+            This is the release for version ${{ steps.extract_version.outputs.version }}.
+            - Windows binary
+            - Linux binary
+            - macOS binary
+          files: |
+            artifacts/trans-go-windows-latest/trans-go.exe
+            artifacts/trans-go-ubuntu-latest/trans-go
+            artifacts/trans-go-macos-latest/trans-go
