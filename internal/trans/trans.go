@@ -39,6 +39,19 @@ const (
 )
 
 const (
+	systemPromptAuto = `
+	你是一个翻译专家，你的任务是将我给出的英文翻译成中文,要求做到信雅达;
+	如果我给出的英文是单词:
+	你首先要给出该单词最常用的解释以及该单词的音标,然后给出一个英文的解释,同时你需要使用该解释给出英文例句以及其翻译;
+	格式如下:
+	{中文翻译}  {音标}
+	{英文解释}
+	例句:
+	1. {英文例句} {例句的中文翻译}
+	...;
+	如果该单词有其他解释和词性,则继续补充说明;
+	`
+
 	systemPromptWord = `
 	你是一个翻译专家，你的任务是将我给出的英文单词翻译成中文,要求做到信雅达;
 	你首先要给出该单词最常用的解释以及该单词的音标, 然后给出一个英文的解释, 同时你需要使用该解释给出英文例句以及其翻译;
@@ -124,10 +137,12 @@ func (translator Translator) AnalyzeKind(text string) (EnTextKind, error) {
 	systemPrompt := `
 	你是一个英文文本类型检测器，你将精确的根据自己的英文知识分析出发送给你的英文文本的类型。
 	你只能回复以下几种类型之一：
-	WORD - 单词
-	PHRASE - 短语
-	SENTENCE - 句子
-	Paragraph - 段落
+	WORD,PHRASE,SENTENCE,Paragraph
+	这些类型分别意味着:
+	WORD: 语言或写作中的一个独立且有意义的元素，通常与其他词一起构成句子。
+	PHRASE: 一组作为概念单位的小词群，通常构成从句的一个组成部分。
+	SENTENCE: 一组完整的词语，通常包含主语和谓语，表达陈述、疑问、感叹或命令。
+	Paragraph: 文章中的一个独立部分，通常围绕一个主题展开，并通过新行、缩进或编号来标识。
 	`
 	ctx := context.Background()
 	conf := translator.Config
@@ -159,19 +174,7 @@ func (translator Translator) AnalyzeKind(text string) (EnTextKind, error) {
 
 func (translator Translator) TranslateAuto(texts ...string) error {
 	ctx := context.Background()
-	systemPrompt := `
-	你是一个翻译专家，你的任务是将我给出的英文翻译成中文,要求做到信雅达;
-	如果我给出的英文是单词:
-	你首先要给出该单词最常用的解释以及该单词的音标,然后给出一个英文的解释,同时你需要使用该解释给出英文例句以及其翻译;
-	格式如下:
-	{中文翻译}  {音标}
-	{英文解释}
-	例句:
-	1. {英文例句} {例句的中文翻译}
-	...;
-	如果该单词有其他解释和词性,则继续补充说明;
-	`
-
+	systemPrompt := systemPromptAuto
 	for _, text := range texts {
 		if err := translator.streamingTranslate(ctx, systemPrompt, text); err != nil {
 			return fmt.Errorf("translate auto failed: %w", err)
@@ -182,18 +185,7 @@ func (translator Translator) TranslateAuto(texts ...string) error {
 
 func (translator Translator) TranslateWord(words ...string) error {
 	ctx := context.Background()
-	systemPrompt := `
-	你是一个翻译专家，你的任务是将我给出的英文单词翻译成中文,要求做到信雅达;
-	你首先要给出该单词最常用的解释以及该单词的音标, 然后给出一个英文的解释, 同时你需要使用该解释给出英文例句以及其翻译;
-	格式如下:
-	{中文翻译}  {音标}
-	{英文解释}
-	例句:
-	1. {英文例句} {例句的中文翻译}
-	...;
-	如果该单词有其他解释和词性,则继续适当补充说明;
-	`
-
+	systemPrompt := systemPromptWord
 	for _, word := range words {
 		if err := translator.streamingTranslate(ctx, systemPrompt, word); err != nil {
 			return fmt.Errorf("translate word failed: %w", err)
@@ -238,18 +230,7 @@ func (translator Translator) streamingTranslate(ctx context.Context, systemPromp
 
 func (translator Translator) TranslatePhrase(phrases ...string) error {
 	ctx := context.Background()
-	systemPrompt := `
-	你是一个翻译专家，你的任务是将我给出的英文短语翻译成中文,要求做到信雅达;
-	你需要给出该短语的中文翻译，以及用法说明和例句;
-	格式如下:
-	{中文翻译}
-	用法说明：
-	{用法说明}
-	例句:
-	1. {英文例句} {例句的中文翻译}
-	...
-	`
-
+	systemPrompt := systemPromptPhrase
 	for _, phrase := range phrases {
 		if err := translator.streamingTranslate(ctx, systemPrompt, phrase); err != nil {
 			return fmt.Errorf("translate phrase failed: %w", err)
@@ -260,16 +241,7 @@ func (translator Translator) TranslatePhrase(phrases ...string) error {
 
 func (translator Translator) TranslateSentence(sentences ...string) error {
 	ctx := context.Background()
-	systemPrompt := `
-	你是一个翻译专家，你的任务是将我给出的英文句子翻译成中文,要求做到信雅达;
-	你需要给出该句子的中文翻译，并解释句子中的重要语法点或词组用法;
-	格式如下:
-	译文：{中文翻译}
-	要点解：
-	1. {重要语法点或词组用法解释}
-	...
-	`
-
+	systemPrompt := systemPromptSentence
 	for _, sentence := range sentences {
 		if err := translator.streamingTranslate(ctx, systemPrompt, sentence); err != nil {
 			return fmt.Errorf("translate sentence failed: %w", err)
@@ -280,19 +252,7 @@ func (translator Translator) TranslateSentence(sentences ...string) error {
 
 func (translator Translator) TranslateParagraph(paragraphs ...string) error {
 	ctx := context.Background()
-	systemPrompt := `
-	你是一个翻译专家，你的任务是将我给出的英文段落翻译成中文,要求做到信雅达;
-	你需要给出该段落的中文翻译，并总结��落的主要内容和写作特点;
-	格式如下:
-	译文：
-	{中文翻译}
-	
-	内容要点：
-	1. {主要内容概述}
-	2. {写作特点分析}
-	...
-	`
-
+	systemPrompt := systemPromptParagraph
 	for _, paragraph := range paragraphs {
 		if err := translator.streamingTranslate(ctx, systemPrompt, paragraph); err != nil {
 			return fmt.Errorf("translate paragraph failed: %w", err)
